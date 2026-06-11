@@ -1,8 +1,9 @@
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { CalendarEvent } from '@/lib/types';
 import { useSession } from '@/contexts/SessionContext';
 import { useGroup } from '@/contexts/GroupContext';
+import { confirm } from '@/lib/confirm';
 
 interface Props {
   event: CalendarEvent;
@@ -20,10 +21,7 @@ export function EventCard({ event }: Props) {
   const isAttending = event.attendees?.some((a) => a.user_id === session?.user.id) ?? false;
 
   function confirmDelete() {
-    Alert.alert('Delete event', `Remove "${event.title}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteEvent(event.id) },
-    ]);
+    confirm('Delete event', `Remove "${event.title}"?`, () => deleteEvent(event.id), 'Delete');
   }
 
   function openEdit() {

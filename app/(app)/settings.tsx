@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useGroup } from '@/contexts/GroupContext';
 import { useSession } from '@/contexts/SessionContext';
+import { confirm } from '@/lib/confirm';
 
 
 export default function SettingsScreen() {
@@ -44,37 +45,24 @@ export default function SettingsScreen() {
     });
   }
 
-  async function confirmLeaveGroup() {
+  function confirmLeaveGroup() {
     if (!currentGroup) return;
-    Alert.alert(
+    confirm(
       'Leave group',
       `Leave "${currentGroup.name}"? You'll need a new invite code to rejoin.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Leave',
-          style: 'destructive',
-          onPress: async () => {
-            await leaveGroup(currentGroup.id);
-            router.replace('/(app)/groups');
-          },
-        },
-      ]
+      async () => {
+        await leaveGroup(currentGroup.id);
+        router.replace('/(app)/groups');
+      },
+      'Leave'
     );
   }
 
-  async function signOut() {
-    Alert.alert('Sign out', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign out',
-        style: 'destructive',
-        onPress: async () => {
-          await supabase.auth.signOut();
-          router.replace('/(auth)/login');
-        },
-      },
-    ]);
+  function signOut() {
+    confirm('Sign out', 'Are you sure?', async () => {
+      await supabase.auth.signOut();
+      router.replace('/(auth)/login');
+    }, 'Sign out');
   }
 
   return (
