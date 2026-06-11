@@ -23,9 +23,21 @@ function datesBetween(start: string, end: string): string[] {
   return dates;
 }
 
+function addMonths(yyyymm: string, delta: number): string {
+  const [y, m] = yyyymm.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+}
+
+function formatMonth(yyyymmdd: string): string {
+  const [y, m] = yyyymmdd.split('-').map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
 export default function CalendarScreen() {
   const { events, currentGroup, loading } = useGroup();
   const [selectedDate, setSelectedDate] = useState(todayString());
+  const [visibleMonth, setVisibleMonth] = useState(todayString().slice(0, 7) + '-01');
 
   const markedDates = useMemo<MarkedDates>(() => {
     const map: MarkedDates = {};
@@ -78,15 +90,25 @@ export default function CalendarScreen() {
         </TouchableOpacity>
       </View>
 
+      <View style={styles.monthBar}>
+        <TouchableOpacity style={styles.monthButton} onPress={() => setVisibleMonth(addMonths(visibleMonth, -1))}>
+          <Text style={styles.monthButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.monthLabel}>{formatMonth(visibleMonth)}</Text>
+        <TouchableOpacity style={styles.monthButton} onPress={() => setVisibleMonth(addMonths(visibleMonth, 1))}>
+          <Text style={styles.monthButtonText}>›</Text>
+        </TouchableOpacity>
+      </View>
+
       <Calendar
+        key={visibleMonth}
+        current={visibleMonth}
         onDayPress={(day: DateData) => setSelectedDate(day.dateString)}
+        onMonthChange={(m) => setVisibleMonth(`${m.year}-${String(m.month).padStart(2, '0')}-01`)}
         markedDates={markedDates}
         markingType="multi-period"
-        renderArrow={(direction) => (
-          <Text style={{ color: '#6C63FF', fontSize: 22, fontWeight: '600', paddingHorizontal: 8 }}>
-            {direction === 'left' ? '‹' : '›'}
-          </Text>
-        )}
+        hideArrows
+        renderHeader={() => null}
         theme={{
           selectedDayBackgroundColor: '#6C63FF',
           todayTextColor: '#6C63FF',
@@ -119,6 +141,10 @@ const styles = StyleSheet.create({
   backText: { fontSize: 16, color: '#6C63FF', fontWeight: '600' },
   groupName: { fontSize: 17, fontWeight: '700', color: '#111827', flex: 1, textAlign: 'center' },
   settingsIcon: { fontSize: 22, minWidth: 70, textAlign: 'right' },
+  monthBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingVertical: 10, backgroundColor: '#fff' },
+  monthButton: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', backgroundColor: '#EEF2FF' },
+  monthButtonText: { color: '#6C63FF', fontSize: 22, fontWeight: '700', lineHeight: 24 },
+  monthLabel: { fontSize: 17, fontWeight: '700', color: '#111827' },
   eventsContainer: { flex: 1 },
   fab: { position: 'absolute', right: 24, bottom: 36, width: 56, height: 56, borderRadius: 28, backgroundColor: '#6C63FF', justifyContent: 'center', alignItems: 'center', shadowColor: '#6C63FF', shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
   fabText: { color: '#fff', fontSize: 28, lineHeight: 32 },

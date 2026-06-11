@@ -38,6 +38,17 @@ function dayCount(start: string, end: string) {
   return Math.round(ms / 86400000) + 1;
 }
 
+function addMonths(yyyymmdd: string, delta: number): string {
+  const [y, m] = yyyymmdd.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+}
+
+function formatMonth(yyyymmdd: string): string {
+  const [y, m] = yyyymmdd.split('-').map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
 export default function AddEventScreen() {
   const session = useSession()!;
   const { currentGroup, events, addEvent, updateEvent } = useGroup();
@@ -59,6 +70,9 @@ export default function AddEventScreen() {
   );
   const [notes, setNotes] = useState(editingEvent?.notes ?? '');
   const [saving, setSaving] = useState(false);
+  const [visibleMonth, setVisibleMonth] = useState(
+    (editingEvent?.date ?? initialDate ?? today).slice(0, 7) + '-01'
+  );
 
   function handleDayPress(day: DateData) {
     const d = day.dateString;
@@ -147,16 +161,24 @@ export default function AddEventScreen() {
           <Text style={styles.label}>Select dates</Text>
           <Text style={styles.hint}>Tap a start date, then tap an end date</Text>
           <View style={styles.calendarWrapper}>
+            <View style={styles.monthBar}>
+              <TouchableOpacity style={styles.monthButton} onPress={() => setVisibleMonth(addMonths(visibleMonth, -1))}>
+                <Text style={styles.monthButtonText}>‹</Text>
+              </TouchableOpacity>
+              <Text style={styles.monthLabel}>{formatMonth(visibleMonth)}</Text>
+              <TouchableOpacity style={styles.monthButton} onPress={() => setVisibleMonth(addMonths(visibleMonth, 1))}>
+                <Text style={styles.monthButtonText}>›</Text>
+              </TouchableOpacity>
+            </View>
             <Calendar
+              key={visibleMonth}
+              current={visibleMonth}
               onDayPress={handleDayPress}
+              onMonthChange={(m) => setVisibleMonth(`${m.year}-${String(m.month).padStart(2, '0')}-01`)}
               markedDates={markedDates}
               markingType="period"
-              initialDate={startDate ?? initialDate ?? today}
-              renderArrow={(direction) => (
-                <Text style={{ color: '#6C63FF', fontSize: 22, fontWeight: '600', paddingHorizontal: 8 }}>
-                  {direction === 'left' ? '‹' : '›'}
-                </Text>
-              )}
+              hideArrows
+              renderHeader={() => null}
               theme={{
                 selectedDayBackgroundColor: '#6C63FF',
                 todayTextColor: '#6C63FF',
@@ -225,6 +247,10 @@ const styles = StyleSheet.create({
   input: { backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 10, padding: 14, fontSize: 16, color: '#111827' },
   multiline: { height: 90, textAlignVertical: 'top' },
   calendarWrapper: { borderRadius: 12, overflow: 'hidden', borderWidth: 1.5, borderColor: '#E5E7EB', backgroundColor: '#fff' },
+  monthBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#fff' },
+  monthButton: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', backgroundColor: '#EEF2FF' },
+  monthButtonText: { color: '#6C63FF', fontSize: 20, fontWeight: '700', lineHeight: 22 },
+  monthLabel: { fontSize: 16, fontWeight: '700', color: '#111827' },
   dateRange: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#EEF2FF', borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14, marginTop: 10 },
   dateRangeText: { color: '#4338CA', fontWeight: '600', fontSize: 14, flex: 1 },
   clearText: { color: '#9CA3AF', fontSize: 13 },
