@@ -17,6 +17,7 @@ interface GroupContextValue {
   updateEvent: (id: string, fields: { title: string; date: string; end_date: string | null; start_time: string | null; end_time: string | null; notes: string | null }) => Promise<string | null>;
   deleteEvent: (id: string) => Promise<void>;
   leaveGroup: (groupId: string) => Promise<void>;
+  renameGroup: (groupId: string, name: string) => Promise<string | null>;
   toggleAttendance: (eventId: string) => Promise<void>;
 }
 
@@ -241,6 +242,16 @@ export function GroupProvider({ children, session }: { children: React.ReactNode
     }
   }
 
+  async function renameGroup(groupId: string, name: string): Promise<string | null> {
+    const trimmed = name.trim();
+    if (!trimmed) return 'Name cannot be empty';
+    const { error } = await supabase.from('groups').update({ name: trimmed }).eq('id', groupId);
+    if (error) return error.message;
+    setAllGroups((prev) => prev.map((g) => g.id === groupId ? { ...g, name: trimmed } : g));
+    setCurrentGroup((prev) => prev?.id === groupId ? { ...prev, name: trimmed } : prev);
+    return null;
+  }
+
   async function toggleAttendance(eventId: string): Promise<void> {
     const userId = session.user.id;
     const event = events.find((e) => e.id === eventId);
@@ -272,7 +283,7 @@ export function GroupProvider({ children, session }: { children: React.ReactNode
   }
 
   return (
-    <GroupContext.Provider value={{ allGroups, currentGroup, members, events, loading, selectGroup, createGroup, joinGroup, addEvent, updateEvent, deleteEvent, leaveGroup, toggleAttendance }}>
+    <GroupContext.Provider value={{ allGroups, currentGroup, members, events, loading, selectGroup, createGroup, joinGroup, addEvent, updateEvent, deleteEvent, leaveGroup, renameGroup, toggleAttendance }}>
       {children}
     </GroupContext.Provider>
   );

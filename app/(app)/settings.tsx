@@ -8,10 +8,28 @@ import { confirm } from '@/lib/confirm';
 
 
 export default function SettingsScreen() {
-  const { currentGroup, members, leaveGroup } = useGroup();
+  const { currentGroup, members, leaveGroup, renameGroup } = useGroup();
   const session = useSession();
   const [displayName, setDisplayName] = useState('');
   const [savingName, setSavingName] = useState(false);
+  const [groupName, setGroupName] = useState('');
+  const [savingGroupName, setSavingGroupName] = useState(false);
+  const isGroupOwner = !!session && !!currentGroup && currentGroup.created_by === session.user.id;
+
+  useEffect(() => {
+    setGroupName(currentGroup?.name ?? '');
+  }, [currentGroup?.id, currentGroup?.name]);
+
+  async function saveGroupName() {
+    if (!currentGroup) return;
+    const trimmed = groupName.trim();
+    if (!trimmed || trimmed === currentGroup.name) return;
+    setSavingGroupName(true);
+    const error = await renameGroup(currentGroup.id, trimmed);
+    setSavingGroupName(false);
+    if (error) Alert.alert('Error', error);
+    else Alert.alert('Saved', 'Group name updated.');
+  }
 
   useEffect(() => {
     if (!session) return;
@@ -92,7 +110,27 @@ export default function SettingsScreen() {
           <>
             <Text style={styles.sectionTitle}>Group</Text>
             <View style={styles.card}>
-              <Text style={styles.groupName}>{currentGroup.name}</Text>
+              {isGroupOwner ? (
+                <>
+                  <Text style={styles.label}>Group name</Text>
+                  <View style={styles.nameRow}>
+                    <TextInput
+                      style={styles.nameInput}
+                      value={groupName}
+                      onChangeText={setGroupName}
+                      placeholder="Group name"
+                      placeholderTextColor="#9CA3AF"
+                      onSubmitEditing={saveGroupName}
+                    />
+                    <TouchableOpacity style={styles.saveButton} onPress={saveGroupName} disabled={savingGroupName}>
+                      {savingGroupName ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveButtonText}>Save</Text>}
+                    </TouchableOpacity>
+                  </View>
+                  <View style={{ height: 16 }} />
+                </>
+              ) : (
+                <Text style={styles.groupName}>{currentGroup.name}</Text>
+              )}
               <Text style={styles.inviteLabel}>Invite code</Text>
               <Text style={styles.inviteCode}>{currentGroup.invite_code}</Text>
               <TouchableOpacity style={styles.shareButton} onPress={shareInvite}>
